@@ -24,6 +24,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Yêu thích',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bookmark.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
