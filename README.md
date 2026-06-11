@@ -16,6 +16,16 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+If you want to run the backend server locally, open a second terminal and run:
+
+```bash
+cd server
+npm install
+npm start
+```
+
+The backend will listen on port `4000` and is used by the app for authentication and listing management.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

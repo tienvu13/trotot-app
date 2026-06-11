@@ -1,44 +1,73 @@
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from "expo-router";
+import { useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
-import { useAuth } from '@/contexts/auth-context';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Vui lòng nhập đầy đủ thông tin');
+  const handleLogin = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!normalizedEmail || !password) {
+      Alert.alert("Vui lòng nhập email và mật khẩu.");
       return;
     }
 
-    if (login(email, password)) {
-      router.push('/');
+    if (!emailPattern.test(normalizedEmail)) {
+      Alert.alert("Email không hợp lệ.");
       return;
     }
 
-    Alert.alert('Đăng nhập thất bại', 'Email hoặc mật khẩu không chính xác.');
+    setIsLoading(true);
+    try {
+      if (await login(normalizedEmail, password)) {
+        router.push("/");
+        return;
+      }
+
+      Alert.alert("Đăng nhập thất bại", "Email hoặc mật khẩu không chính xác.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <ThemedView style={styles.pageContainer}>
-      <Stack.Screen options={{ title: 'Đăng nhập' }} />
+      <Stack.Screen options={{ title: "Đăng nhập" }} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoiding}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="on-drag"
+        >
           <ThemedText type="title" style={styles.title}>
-            Chào mừng trở lại
+            Đăng nhập
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            Đăng nhập để lưu phòng yêu thích và sử dụng các tính năng cá nhân hóa.
+            Đăng nhập để lưu phòng yêu thích và sử dụng các tính năng cá nhân
+            hóa.
           </ThemedText>
 
           <View style={styles.fieldGroup}>
@@ -66,14 +95,38 @@ export default function LoginScreen() {
             />
           </View>
 
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={handleLogin}>
-            <ThemedText style={styles.primaryButtonText}>Đăng nhập</ThemedText>
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              isLoading && styles.primaryButtonDisabled,
+            ]}
+            activeOpacity={0.85}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ThemedText
+                  style={[styles.primaryButtonText, { marginLeft: 8 }]}
+                >
+                  Đang xử lý...
+                </ThemedText>
+              </View>
+            ) : (
+              <ThemedText style={styles.primaryButtonText}>
+                Đăng nhập
+              </ThemedText>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footerRow}>
             <ThemedText>Bạn chưa có tài khoản?</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/register')} activeOpacity={0.85}>
-              <ThemedText style={styles.footerLink}>Đăng ký ngay</ThemedText>
+            <TouchableOpacity
+              onPress={() => router.push("/register")}
+              activeOpacity={0.85}
+            >
+              <ThemedText style={styles.footerLink}>Đăng ký</ThemedText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -85,7 +138,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   keyboardAvoiding: {
     flex: 1,
@@ -101,45 +154,54 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#475569',
+    color: "#475569",
   },
   fieldGroup: {
     gap: 10,
   },
   fieldLabel: {
     fontSize: 14,
-    color: '#334155',
+    color: "#334155",
   },
   input: {
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#0F172A',
+    color: "#0F172A",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   primaryButton: {
     marginTop: 8,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#0A7EA4',
-    alignItems: 'center',
+    backgroundColor: "#0A7EA4",
+    alignItems: "center",
+  },
+  primaryButtonDisabled: {
+    backgroundColor: "#0A7EA4CC",
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 6,
     marginTop: 18,
   },
   footerLink: {
-    color: '#0A7EA4',
-    fontWeight: '700',
+    color: "#0A7EA4",
+    fontWeight: "700",
   },
 });

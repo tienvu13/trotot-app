@@ -1,41 +1,83 @@
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { useAuth } from '@/contexts/auth-context';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Khách hàng');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("Khách hàng");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!name || !email || !password || !role) {
-      Alert.alert('Vui lòng nhập đầy đủ thông tin');
+  const handleRegister = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!name || !normalizedEmail || !password || !role) {
+      Alert.alert("Vui lòng nhập đầy đủ thông tin");
       return;
     }
 
-    if (register(name, email, password, role)) {
-      router.push('/');
+    if (!emailPattern.test(normalizedEmail)) {
+      Alert.alert("Email không hợp lệ");
       return;
     }
 
-    Alert.alert('Đăng ký thất bại', 'Email này đã được sử dụng.');
+    if (password.length < 6) {
+      Alert.alert("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (await register(name, normalizedEmail, password, role)) {
+        Alert.alert(
+          "Đăng ký thành công",
+          "Vui lòng đăng nhập bằng tài khoản mới.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.push("/login"),
+            },
+          ],
+        );
+        return;
+      }
+
+      Alert.alert("Đăng ký thất bại", "Email này đã được sử dụng.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <ThemedView style={styles.pageContainer}>
-      <Stack.Screen options={{ title: 'Đăng ký' }} />
+      <Stack.Screen options={{ title: "Đăng ký" }} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoiding}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="on-drag"
+        >
           <ThemedText type="title" style={styles.title}>
             Tạo tài khoản mới
           </ThemedText>
@@ -83,33 +125,73 @@ export default function RegisterScreen() {
             <ThemedText style={styles.fieldLabel}>Vai trò</ThemedText>
             <View style={styles.roleContainer}>
               <TouchableOpacity
-                style={[styles.roleButton, role === 'Khách hàng' && styles.roleButtonActive]}
-                onPress={() => setRole('Khách hàng')}
+                style={[
+                  styles.roleButton,
+                  role === "Khách hàng" && styles.roleButtonActive,
+                ]}
+                onPress={() => setRole("Khách hàng")}
                 activeOpacity={0.85}
               >
-                <ThemedText style={role === 'Khách hàng' ? styles.roleTextActive : styles.roleText}>
+                <ThemedText
+                  style={
+                    role === "Khách hàng"
+                      ? styles.roleTextActive
+                      : styles.roleText
+                  }
+                >
                   Khách hàng
                 </ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.roleButton, role === 'Hộ kinh doanh' && styles.roleButtonActive]}
-                onPress={() => setRole('Hộ kinh doanh')}
+                style={[
+                  styles.roleButton,
+                  role === "Hộ kinh doanh" && styles.roleButtonActive,
+                ]}
+                onPress={() => setRole("Hộ kinh doanh")}
                 activeOpacity={0.85}
               >
-                <ThemedText style={role === 'Hộ kinh doanh' ? styles.roleTextActive : styles.roleText}>
+                <ThemedText
+                  style={
+                    role === "Hộ kinh doanh"
+                      ? styles.roleTextActive
+                      : styles.roleText
+                  }
+                >
                   Hộ kinh doanh
                 </ThemedText>
               </TouchableOpacity>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.85} onPress={handleRegister}>
-            <ThemedText style={styles.primaryButtonText}>Đăng ký</ThemedText>
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              isLoading && styles.primaryButtonDisabled,
+            ]}
+            activeOpacity={0.85}
+            onPress={handleRegister}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ThemedText
+                  style={[styles.primaryButtonText, { marginLeft: 8 }]}
+                >
+                  Đang xử lý...
+                </ThemedText>
+              </View>
+            ) : (
+              <ThemedText style={styles.primaryButtonText}>Đăng ký</ThemedText>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footerRow}>
             <ThemedText>Đã có tài khoản?</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/login')} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={() => router.push("/explore")}
+              activeOpacity={0.85}
+            >
               <ThemedText style={styles.footerLink}>Đăng nhập</ThemedText>
             </TouchableOpacity>
           </View>
@@ -122,7 +204,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   keyboardAvoiding: {
     flex: 1,
@@ -138,70 +220,79 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#475569',
+    color: "#475569",
   },
   fieldGroup: {
     gap: 10,
   },
   fieldLabel: {
     fontSize: 14,
-    color: '#334155',
+    color: "#334155",
   },
   input: {
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#0F172A',
+    color: "#0F172A",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   roleContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   roleButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   roleButtonActive: {
-    backgroundColor: '#0A7EA4',
-    borderColor: '#0A7EA4',
+    backgroundColor: "#0A7EA4",
+    borderColor: "#0A7EA4",
   },
   roleText: {
     fontSize: 16,
-    color: '#64748B',
+    color: "#64748B",
   },
   roleTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
   primaryButton: {
     marginTop: 8,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#0A7EA4',
-    alignItems: 'center',
+    backgroundColor: "#0A7EA4",
+    alignItems: "center",
+  },
+  primaryButtonDisabled: {
+    backgroundColor: "#0A7EA4CC",
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 6,
     marginTop: 18,
   },
   footerLink: {
-    color: '#0A7EA4',
-    fontWeight: '700',
+    color: "#0A7EA4",
+    fontWeight: "700",
   },
 });
