@@ -1,15 +1,14 @@
-import Slider from "@react-native-community/slider";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 
@@ -28,7 +27,9 @@ export default function HomeScreen() {
   const [query, setQuery] = useState("");
   const [selectedProvince, setSelectedProvince] = useState(provinces[0]);
   const [selectedWards, setSelectedWards] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState<
+    [number, number]
+  >([0, 10000000]);
   const [showFilters, setShowFilters] = useState(false);
   const [showWardModal, setShowWardModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<RentalListing | null>(null);
@@ -44,6 +45,15 @@ export default function HomeScreen() {
     longitudeDelta: 0.1,
   });
   const mapRef = useRef<MapView | null>(null);
+
+  const priceRanges: Array<{ label: string; min: number; max: number }> = [
+    { label: "Dưới 1 triệu", min: 0, max: 1000000 },
+    { label: "1 - 2 triệu", min: 1000000, max: 2000000 },
+    { label: "2 - 3 triệu", min: 2000000, max: 3000000 },
+    { label: "3 - 5 triệu", min: 3000000, max: 5000000 },
+    { label: "5 - 10 triệu", min: 5000000, max: 10000000 },
+    { label: "10 triệu+", min: 10000000, max: 99999999 },
+  ];
 
   useEffect(() => {
     let newRegion: Region;
@@ -134,103 +144,21 @@ export default function HomeScreen() {
       : `${million.toFixed(1).replace(/\.0$/, "")} triệu`;
   };
 
-  const PriceRangeSlider = ({
-    min,
-    max,
-    step,
-    value,
-    onValueChange,
-  }: {
-    min: number;
-    max: number;
-    step: number;
-    value: [number, number];
-    onValueChange: (newValue: [number, number]) => void;
-  }) => {
-    const [trackWidth, setTrackWidth] = useState(0);
-    const [localValue, setLocalValue] = useState<[number, number]>(value);
-
-    const handleFromChange = (nextFrom: number) => {
-      const newFrom = Math.max(
-        Math.min(nextFrom, Math.max(localValue[1] - step, min)),
-        min,
-      );
-      const newValue = [newFrom, localValue[1]] as [number, number];
-      setLocalValue(newValue);
-      onValueChange(newValue);
-    };
-
-    const handleToChange = (nextTo: number) => {
-      const newTo = Math.min(
-        Math.max(nextTo, Math.min(localValue[0] + step, max)),
-        max,
-      );
-      const newValue = [localValue[0], newTo] as [number, number];
-      setLocalValue(newValue);
-      onValueChange(newValue);
-    };
-
-    const activeLeft =
-      trackWidth > 0 ? ((localValue[0] - min) / (max - min)) * trackWidth : 0;
-    const activeWidth =
-      trackWidth > 0
-        ? ((localValue[1] - localValue[0]) / (max - min)) * trackWidth
-        : 0;
-
-    return (
-      <View
-        style={styles.rangeSliderContainer}
-        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-      >
-        <View style={styles.rangeTrackBackground} />
-        <View
-          style={[
-            styles.rangeTrackActive,
-            { left: activeLeft, width: activeWidth },
-          ]}
-        />
-        <Slider
-          style={styles.sliderOverlay}
-          minimumValue={min}
-          maximumValue={max}
-          step={step}
-          value={localValue[0]}
-          onValueChange={handleFromChange}
-          thumbTintColor="#0A7EA4"
-          minimumTrackTintColor="transparent"
-          maximumTrackTintColor="transparent"
-        />
-        <Slider
-          style={styles.sliderOverlay}
-          minimumValue={min}
-          maximumValue={max}
-          step={step}
-          value={localValue[1]}
-          onValueChange={handleToChange}
-          thumbTintColor="#0A7EA4"
-          minimumTrackTintColor="transparent"
-          maximumTrackTintColor="transparent"
-        />
-      </View>
-    );
-  };
-
-  const priceNumbers = useMemo(() => {
-    return listings.map((room) => Number(room.price.replace(/[^0-9]/g, "")));
-  }, [listings]);
-
   const filteredRooms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return listings.filter((room: RentalListing, index: number) => {
+    return listings.filter((room: RentalListing) => {
       if (selectedProvince !== "Tất cả" && room.province !== selectedProvince) {
         return false;
       }
       if (selectedWards.length > 0 && !selectedWards.includes(room.ward)) {
         return false;
       }
-      const price = priceNumbers[index];
-      if (price < priceRange[0] || price > priceRange[1]) {
+      const roomPrice = Number(room.price.replace(/[^0-9]/g, ""));
+      if (
+        roomPrice < selectedPriceRange[0] ||
+        roomPrice > selectedPriceRange[1]
+      ) {
         return false;
       }
       if (!normalizedQuery) {
@@ -245,14 +173,7 @@ export default function HomeScreen() {
         )
       );
     });
-  }, [
-    query,
-    selectedProvince,
-    selectedWards,
-    priceRange,
-    priceNumbers,
-    listings,
-  ]);
+  }, [query, selectedProvince, selectedWards, selectedPriceRange, listings]);
 
   return (
     <ThemedView style={styles.container}>
@@ -397,22 +318,33 @@ export default function HomeScreen() {
               >
                 Giá
               </ThemedText>
-              <View style={styles.priceLabelsRow}>
-                <ThemedText style={styles.priceRangeText}>
-                  {formatPrice(priceRange[0])}
-                </ThemedText>
-                <ThemedText style={styles.priceRangeText}>
-                  {formatPrice(priceRange[1])}
-                </ThemedText>
-              </View>
-              <View style={styles.rangeSliderWrapper}>
-                <PriceRangeSlider
-                  min={0}
-                  max={10000000}
-                  step={500000}
-                  value={priceRange}
-                  onValueChange={setPriceRange}
-                />
+              <View style={styles.priceButtonsRow}>
+                {priceRanges.map((range, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.priceButton,
+                      selectedPriceRange[0] === range.min &&
+                        selectedPriceRange[1] === range.max &&
+                        styles.priceButtonActive,
+                    ]}
+                    onPress={() =>
+                      setSelectedPriceRange([range.min, range.max])
+                    }
+                    activeOpacity={0.85}
+                  >
+                    <ThemedText
+                      style={
+                        selectedPriceRange[0] === range.min &&
+                        selectedPriceRange[1] === range.max
+                          ? styles.priceButtonTextActive
+                          : styles.priceButtonText
+                      }
+                    >
+                      {range.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </>
@@ -864,39 +796,20 @@ const styles = StyleSheet.create({
   },
   rangeSliderWrapper: {
     width: "100%",
-    height: 40,
+    paddingVertical: 8,
+  },
+  priceSliderContainer: {
+    width: "100%",
+    gap: 4,
+  },
+  sliderWrapper: {
+    width: "100%",
+    height: 36,
     justifyContent: "center",
   },
-  rangeSliderContainer: {
+  slider: {
     width: "100%",
     height: 40,
-    justifyContent: "center",
-  },
-  rangeTrackBackground: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(10, 126, 164, 0.2)",
-  },
-  rangeTrackActive: {
-    position: "absolute",
-    top: "50%",
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#0A7EA4",
-    transform: [{ translateY: -3 }],
-  },
-  sliderOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 40,
-  },
-  rangeSlider: {
-    width: "100%",
-    height: 80,
   },
   modalOverlay: {
     flex: 1,
