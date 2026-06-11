@@ -771,6 +771,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#0A7EA4",
   },
+  priceButtonsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  priceButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  priceButtonActive: {
+    backgroundColor: "#0A7EA4",
+    borderColor: "#0A7EA4",
+  },
+  priceButtonText: {
+    fontSize: 13,
+    color: "#0F172A",
+  },
+  priceButtonTextActive: {
+    fontSize: 13,
+    color: "#FFFFFF",
+  },
   priceInputsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
